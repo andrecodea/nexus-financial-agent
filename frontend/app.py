@@ -57,12 +57,14 @@ if prompt := st.chat_input("Pergunte algo sobre finanças ou matemática..."):
 
     # === Chamada de API ===
     try:
+        # Tenta realizar um POST à API
         with st.spinner("NEXUS está pensando..."):
             response = requests.post(
                 "http://127.0.0.1:8000/chat",
                 json={"message":prompt}
             )
 
+            # Se a resposta for positiva, a resposta do agente é exibida
             if response.status_code == 200:
                 data = response.json()
                 bot_response = data["response"]

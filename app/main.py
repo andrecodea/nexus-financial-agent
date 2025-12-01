@@ -15,8 +15,11 @@ class ChatResponse(BaseModel):
     response:str = ""
 
 # ====== Aplicação ======
+
+# Inicializa a aplicação
 app = FastAPI(title="NEXUS Financial API")
 
+# Tenta inicializar o agente
 try:
     nexus_agent = NexusAgent()
     print("NEXUS Agent initialized successfully")
@@ -24,10 +27,17 @@ except Exception as e:
     print(f"Failed to initialize Agent: {e}")
     nexus_agent = None
 
+# Configura o path "/chat" para geração de respostas
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request:ChatRequest):
+    """
+    Generates an address '/chat' for POST requests so that chat
+    responses can be sent through it.
+    :param request:
+    :return chat response as JSON object:
+    """
     if not nexus_agent:
-        raise HTTPException(status_code=500, detal="Agent not initialized")
+        raise HTTPException(status_code=500, detail="Agent not initialized")
 
     response_text = nexus_agent.chat(request.message)
     return ChatResponse(response=response_text)
