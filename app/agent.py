@@ -123,20 +123,33 @@ class NexusAgent:
             # Exibe a consulta do usuário
             print(f"User: {user_message}")
 
-            # Reitera o system prompt e concatena à consulta do usuário
-            full_prompt = f"{self.system_prompt}\n\nUser Question: {user_message}"
-
             # Gera a resposta
-            response = self.agent(full_prompt)
+            response = self.agent(user_message)
 
-            # Formata a resposta para texto
-            if isinstance(response, dict) and "parameters" in response:
-                final_answer = response["parameters"].get("message", str(response))
+            # Tratamento da resposta JSON/dict
+            final_answer = ""
+
+            if isinstance(response, dict):
+                # Se tiver uma mensagem dentro de parameters (padrão tool response)
+                if "parameters" in response and "message" in response["parameters"]:
+                    final_answer = response["parameters"]["message"]
+
+                # Erro name = null
+                elif response.get("name") is None:
+                    # Tenta pegar a resposta bruta ou define um fallback
+                    final_answer = str(response) if response else "Não consegui processar a resposta. Tente reformular."
+
+                    # JSON vazio
+                    if str(response) == "{'name': null, 'parameters': {}}":
+                        final_answer = "Desculpe, fiquei confuso. Poderia repetir a pergunta?"
+
+                else:
+                    final_answer = str(response)
+
             elif isinstance(response, list):
                 final_answer = str(response[-1])
             else:
                 final_answer = str(response)
-
             # Exibe a resposta de debug e a resposta final
             print(f"Nexus (Raw): {response}")
             print(f"Nexus (Raw): {final_answer}")
