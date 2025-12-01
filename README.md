@@ -7,7 +7,7 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.31.0-red)
 ![Ollama](https://img.shields.io/badge/LLM-Qwen3%207B-orange)
 
-O **NEXUS Financial Agent** é um agente de IA projetado para cálculos financeiros, matemática geral e consultas de mercado (ações) utilizando ferramentas Python e orquestração via Strands Agents SDK
+O **NEXUS Financial Agent** é um agente de IA projetado para cálculos financeiros, matemática geral e consultas de mercado (ações) utilizando ferramentas Python e orquestração via Strands Agents SDK.
 
 O sistema combina:
 
