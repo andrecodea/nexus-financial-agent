@@ -51,12 +51,12 @@ graph LR
 ---
 
 # ROADMAP
-### Converter o agente em um sistema cognitivo de gastos pessoais e investimentos.
+### Converter o agente em um sistema cognitivo de investimentos.
 - [x] Transição modal de Llama3.1 para Qwen3:8B, que é superior em matemática.
-- [ ] Memória SQLite para gastos e investimentos;
+- [ ] Memória SQLite para gastos e investimentos (STM);
 - [ ] Dashboard inteligente no app Streamlit (Pie & Bar charts);
-- [ ] RAG Documental Agêntico com ChromaDB via upload no Streamlit;
-- [ ] Classificação automática com base em orçamentos;
+- [ ] RAG Agêntico com ChromaDB (LTM);
+- [ ] Classificação automática com base em orçamentos (SM);
 - [ ] Sistema de recomendação inteligente para gastos;
 
 
