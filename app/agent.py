@@ -10,18 +10,24 @@ from datetime import datetime
 load_dotenv()
 
 class NexusAgent:
+    """
+    O agente inteligente financeiro NEXUS é capaz de responder consultas sobre valores de ações e realizar cálculos matemático-financeiros.
+    """
     def __init__(self):
+        # Define o modelo llama3.1 pelo Ollama
         self.ollama_model = OllamaModel(
             host=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
             model_id="llama3.1"
         )
 
+        # Define as tools criadas em tools.py
         self.tools = [
             get_ticker_price,
             calculate_compound_interest,
             calculate_math_expression
         ]
 
+        # Define o system prompt em formato TOON
         self.system_prompt = f"""
         You are NEXUS, an advanced financial AI assistant.
         Rules:
@@ -101,21 +107,29 @@ class NexusAgent:
               output: "Um Fundo Imobiliário (FII) é um fundo de investimento destinado à aplicação em empreendimentos imobiliários..."
         """
 
+        # Cria o agente com o modelo, tools e o system prompt
         self.agent = Agent(
             model=self.ollama_model,
             tools=self.tools,
             system_prompt=self.system_prompt
         )
 
+    # Cria o chat com o loop de execução
     def chat(self, user_message: str):
         """
-        Gets user prompt and generates response
+        Gets user prompt and generates response.
         """
         try:
+            # Exibe a consulta do usuário
             print(f"User: {user_message}")
+
+            # Reitera o system prompt e concatena à consulta do usuário
             full_prompt = f"{self.system_prompt}\n\nUser Question: {user_message}"
+
+            # Gera a resposta
             response = self.agent(full_prompt)
 
+            # Formata a resposta para texto
             if isinstance(response, dict) and "parameters" in response:
                 final_answer = response["parameters"].get("message", str(response))
             elif isinstance(response, list):
@@ -123,6 +137,7 @@ class NexusAgent:
             else:
                 final_answer = str(response)
 
+            # Exibe a resposta de debug e a resposta final
             print(f"Nexus (Raw): {response}")
             print(f"Nexus (Raw): {final_answer}")
 
