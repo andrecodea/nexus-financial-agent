@@ -1,160 +1,160 @@
-# === Importações ===
+# === Importações Necessárias ===
 import os
-from app.tools import calculate_math_expression, calculate_compound_interest, get_ticker_price
+from datetime import datetime
+from dotenv import load_dotenv
+
+# Importa o SDK do Strands e o conector do Ollama
 from strands import Agent
 from strands.models.ollama import OllamaModel
-from dotenv import load_dotenv
-from datetime import datetime
 
-# === Variáveis de ambiente ===
+# Importa as ferramentas que criamos no tools.py
+from app.tools import (
+    calculate_math_expression,
+    calculate_compound_interest,
+    get_ticker_price,
+    get_company_info,
+    get_ticker_news
+)
+
+# Carrega variáveis de ambiente (.env)
 load_dotenv()
+
 
 class NexusAgent:
     """
-    O agente inteligente financeiro NEXUS é capaz de responder consultas sobre valores de ações e realizar cálculos matemático-financeiros.
+    Classe principal do Agente NEXUS.
+    Responsável por configurar o modelo (Cérebro), as ferramentas (Mãos)
+    e as regras de comportamento (System Prompt).
     """
+
     def __init__(self):
-        # Define o modelo llama3.1 pelo Ollama
+        # 1. Configuração do llm
         self.ollama_model = OllamaModel(
             host=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
             model_id="llama3.1"
         )
 
-        # Define as tools criadas em tools.py
+        # 2. Configuração das tools
         self.tools = [
             get_ticker_price,
             calculate_compound_interest,
-            calculate_math_expression
+            calculate_math_expression,
+            get_ticker_news,
+            get_company_info
         ]
 
-        # Define o system prompt em formato TOON
+        # 3. Configuração da Personalidade (System Prompt)
+        # ADICIONEI O EXEMPLO DE "OLÁ" NOS FEW-SHOTS ABAIXO PARA ELE NÃO TRAVAR
         self.system_prompt = f"""
         You are NEXUS, an advanced financial AI assistant.
-        Rules:
-        1. Use 'calculate_math_expression' for ANY math calculation.
-        2. Use 'get_ticker_price' for stock info.
-        3. Use 'calculate_compound_interest' for compound interest calculations.
-        4. Be concise.
-        
+
         AGENT_PROFILE:
           name: Nexus
-          role: Executive Assistant & Orchestrator
-          boss: "André Codea (CEO of WedgeDynamics)"
-          channel: Streamlit Chat via FastAPI connection.
-          tone:
-            style: "Natural, humano, breve, eficiente."
-            forbidden: "Linguagem robótica, excessivamente formal ou pedidos de desculpas desnecessários."
-        
+          role: Financial Assistant
+          tone: Natural, concise, and efficient.
+          language: Portuguese (BR).
+
         CONTEXT_VARIABLES:
           current_date_and_time: {datetime.now()}
-        
-        GLOBAL_DIRECTIVES:
-          - "Você é um AGENTE FINANCEIRO, quaisquer consultas que não envolvam matemática ou finanças não são sua responsabilidade"
-          - "O raciocínio (think/CoT) é interno. O usuário vê apenas a resposta final."
-          - "Nunca invente dados (taxa, tempo, valor). Se faltar dado, PERGUNTE."
-          - "Priorize respostas curtas e diretas"
-          - "CRÍTICO: Para respostas financeiras, o uso das tools é OBRIGATÓRIO."
 
-        CHAIN_OF_THOUGHT:
-          step_1_analyze: "Identificar a intenção (Calcular, Buscar ação (Ticker), jogar conversa fora)"
-          
-          step_2_validate:
-            Cálculo genérico: requer a tool de cálculo (calculate_math_expression).
-            Buscar ação: requer o nome da ação.
-            Cálculo de juros: requer a tool de cálculo de juros (calculate_compound_interest)
-        
-          step_3_decision:
-            - "IF info_missing OR context_vague THEN ask_user(missing_info)"
-            - "IF data_complete THEN call_tool(tool)"
-    
-        TOOLS_SPEC:
-            get_ticker_price:
-                description: "Busca o valor de uma ação no mercado via yfinance."
-                trigger: "Consulta de preço de alguma ação do mercado, ou consulta para cálculo envolvendo alguma ação."
-    
-            calculate_math_expression:
-                description: "Realiza cálculos de expressões matemáticas comuns"
-                trigger: "Consulta para cálculo de expressões matemáticas."
+        RULES:
+          1. Use 'calculate_math_expression' for math.
+          2. Use 'get_ticker_price' for price history/trends.
+          3. Use 'get_company_info' for fundamentals (Sector, P/E, Business).
+          4. Use 'get_ticker_news' for latest news/events.
+          5. STRATEGY: If the user asks for a "Summary" or "Analysis" of a stock, USE MULTIPLE TOOLS (Price + News + Info) before answering.
+          6. If the user greets, answer directly without tools.
+          7. FORMATTING: Use Markdown (bold, lists). NEVER use LaTeX math formatting (like \frac, ^, \c).
+          8. Speak naturally. Use spaces between numbers and words.
+          9. Round numbers to 2 decimal places (e.g., R$ 35.50, not 35.502391).
 
-            calculate_compound_interest:
-                description: "Calcula os juros compostos sobre o tempo."
-                trigger: "Solicitação para calcular os rendimentos de alguma ação."
+        FEW_SHOT_EXAMPLES (How to behave):
+            - User: "Quanto é 50 * 50?"
+              Reasoning: Math detected.
+              Tool: calculate_math_expression("50 * 50")
+              Output: "A resposta é 2500."
+              
+            - User: "Resumo da Apple"
+              Reasoning: Analysis requested. Need price, info and news.
+              Tool 1: get_ticker_price("AAPL")
+              Tool 2: get_company_info("AAPL")
+              Tool 3: get_ticker_news("AAPL")
+              Tool 4: calculate_math_expression
+            
+            - User: "Por que a Vale caiu?"
+              Reasoning: Explanation needed. Need news and recent price trend.
+              Tool 1: get_ticker_price("VALE3.SA")
+              Tool 2: get_ticker_news("VALE3.SA")
+              
 
-        FEW_SHOT_EXAMPLES:
-            - input: "Quanto é 1234 vezes 5678?"
-              reasoning: "Solicitação de cálculo matemático simples."
-              tool_call: "calculate_math_expression(expression='1234 * 5678')"
-              output: "O resultado é 7.006.652. 🧮"
-        
-            - input: "Qual o valor da ação da Petrobras hoje?"
-              reasoning: "Solicitação de cotação de mercado. Identificado ticker PETR4.SA."
-              tool_call: "get_ticker_price(ticker='PETR4.SA')"
-              output: "O preço atual de PETR4.SA é R$ 36,50. 📉"
-        
-            - input: "Quanto rende 1000 reais investidos a 10% ao ano por 5 anos?"
-              reasoning: "Cálculo de investimento/juros compostos. Principal=1000, Taxa=10, Tempo=5."
-              tool_call: "calculate_compound_interest(amount=1000, rate=10, time=5)"
-              output: "Ao final de 5 anos, você terá acumulado R$ 1.610,51. 💰"
-        
-            - input: "Qual a raiz quadrada de 144?"
-              reasoning: "Cálculo matemático avançado. Requer sintaxe python (math)."
-              tool_call: "calculate_math_expression(expression='math.sqrt(144)')"
-              output: "A raiz quadrada de 144 é 12.0."
-        
-            - input: "O que é um fundo imobiliário?"
-              reasoning: "Pergunta conceitual. Nenhuma ferramenta necessária."
-              tool_call: null
-              output: "Um Fundo Imobiliário (FII) é um fundo de investimento destinado à aplicação em empreendimentos imobiliários..."
+            - User: "Preço da Petrobras"
+              Reasoning: Market data detected.
+              Tool: get_ticker_price("PETR4.SA")
+
+            - User: "Olá, tudo bem?"
+              Reasoning: Greeting detected. No tool needed.
+              Output: "Olá! Sou o NEXUS, seu assistente financeiro. Como posso ajudar você hoje?"
+
+            - User: "O que é um ETF?"
+              Reasoning: General question. No tool needed.
+              Output: "Um ETF (Exchange Traded Fund) é um fundo de investimento negociado em bolsa como se fosse uma ação..."
         """
 
-        # Cria o agente com o modelo, tools e o system prompt
+        # 4. Inicialização do agente
         self.agent = Agent(
             model=self.ollama_model,
             tools=self.tools,
             system_prompt=self.system_prompt
         )
 
-    # Cria o chat com o loop de execução
     def chat(self, user_message: str):
         """
-        Gets user prompt and generates response.
+        Chamada da API para processar a mensagem do usuário.
         """
         try:
-            # Exibe a consulta do usuário
             print(f"User: {user_message}")
 
-            # Gera a resposta
             response = self.agent(user_message)
 
-            # Tratamento da resposta JSON/dict
-            final_answer = ""
+            # Caso 1: O Agente devolveu um JSON de Tool Call
+            if isinstance(response, dict) and response.get("name") is not None:
+                tool_name = response["name"]
+                tool_params = response.get("parameters", {})
 
-            if isinstance(response, dict):
-                # Se tiver uma mensagem dentro de parameters (padrão tool response)
+                print(f"Tool Call não executado: {tool_name}")
+
+                # Procura a função correspondente na lista de tools
+                target_tool = next((t for t in self.tools if t.__name__ == tool_name), None)
+
+                if target_tool:
+                    try:
+                        print(f"🛠️ Executando manualmente: {tool_name} com {tool_params}")
+                        result = target_tool(**tool_params)
+                        final_answer = str(result)
+                    except Exception as tool_err:
+                        final_answer = f"Tentei consultar os dados, mas ocorreu um erro técnico: {tool_err}"
+                else:
+                    final_answer = f"O agente tentou usar a ferramenta '{tool_name}', mas ela não foi encontrada."
+
+            # Caso 2: Resposta padrão (JSON com 'message' ou Texto)
+            elif isinstance(response, dict):
                 if "parameters" in response and "message" in response["parameters"]:
                     final_answer = response["parameters"]["message"]
-
-                # Erro name = null
-                elif response.get("name") is None:
-                    # Tenta pegar a resposta bruta ou define um fallback
-                    final_answer = str(response) if response else "Não consegui processar a resposta. Tente reformular."
-
-                    # JSON vazio
-                    if str(response) == "{'name': null, 'parameters': {}}":
-                        final_answer = "Desculpe, fiquei confuso. Poderia repetir a pergunta?"
-
                 else:
-                    final_answer = str(response)
+                    final_answer = str(response)  # Fallback genérico
 
             elif isinstance(response, list):
                 final_answer = str(response[-1])
             else:
                 final_answer = str(response)
-            # Exibe a resposta de debug e a resposta final
-            print(f"Nexus (Raw): {response}")
-            print(f"Nexus (Raw): {final_answer}")
 
+            # Limpeza final
+            if "{'name': null" in str(final_answer):
+                final_answer = "Desculpe, não entendi. Poderia reformular?"
+
+            print(f"Nexus Output: {final_answer}")
             return final_answer
+
         except Exception as e:
-            print(f"Error: {e}")
-            return f"Error processing your request: {str(e)}"
+            print(f"Critical Error: {e}")
+            return f"Ocorreu um erro no processamento: {str(e)}"
