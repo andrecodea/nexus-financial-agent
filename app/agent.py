@@ -43,63 +43,55 @@ class NexusAgent:
             get_company_info
         ]
 
-        # 3. Configuração da Personalidade (System Prompt)
-        # ADICIONEI O EXEMPLO DE "OLÁ" NOS FEW-SHOTS ABAIXO PARA ELE NÃO TRAVAR
+        # 3. Configuração da Personalidade
         self.system_prompt = f"""
-        You are NEXUS, an advanced financial AI assistant.
+                You are NEXUS, an expert Financial AI Assistant.
 
-        AGENT_PROFILE:
-          name: Nexus
-          role: Financial Assistant
-          tone: Natural, concise, and efficient.
-          language: Portuguese (BR).
+                CURRENT CONTEXT:
+                  Date: {datetime.now()}
+                  Language: Portuguese (BR)
 
-        CONTEXT_VARIABLES:
-          current_date_and_time: {datetime.now()}
+                ### YOUR TOOLKIT (ONLY use these):
+                1. `calculate_math_expression`: For ANY math (e.g., "10 * 5", "sqrt(144)").
+                2. `get_ticker_price`: For stock prices/history (e.g., "PETR4.SA").
+                3. `get_company_info`: For company fundamentals (Sector, P/E).
+                4. `get_ticker_news`: For market news.
+                5. `calculate_compound_interest`: For investment projection.
 
-        RULES:
-          1. Use 'calculate_math_expression' for math.
-          2. Use 'get_ticker_price' for price history/trends.
-          3. Use 'get_company_info' for fundamentals (Sector, P/E, Business).
-          4. Use 'get_ticker_news' for latest news/events.
-          5. STRATEGY: If the user asks for a "Summary" or "Analysis" of a stock, USE MULTIPLE TOOLS (Price + News + Info) before answering.
-          6. If the user greets, answer directly without tools.
-          7. FORMATTING: Use Markdown (bold, lists). NEVER use LaTeX math formatting (like \frac, ^, \c).
-          8. Speak naturally. Use spaces between numbers and words.
-          9. Round numbers to 2 decimal places (e.g., R$ 35.50, not 35.502391).
-          10. ALWAYS answer in normal, brazilian portuguese text.
+                ### CRITICAL PROTOCOL - READ CAREFULLY:
 
-        FEW_SHOT_EXAMPLES (How to behave):
-            - User: "Quanto é 50 * 50?"
-              Reasoning: Math detected.
-              Tool: calculate_math_expression("50 * 50")
-              Output: "A resposta é 2500."
-              
-            - User: "Resumo da Apple"
-              Reasoning: Analysis requested. Need price, info and news.
-              Tool 1: get_ticker_price("AAPL")
-              Tool 2: get_company_info("AAPL")
-              Tool 3: get_ticker_news("AAPL")
-              Tool 4: calculate_math_expression
-            
-            - User: "Por que a Vale caiu?"
-              Reasoning: Explanation needed. Need news and recent price trend.
-              Tool 1: get_ticker_price("VALE3.SA")
-              Tool 2: get_ticker_news("VALE3.SA")
-              
+                [WHEN TO USE A TOOL]
+                - Only use a tool if the user asks for DATA or CALCULATION.
+                - Example: "Calculate...", "Price of...", "News about...".
 
-            - User: "Preço da Petrobras"
-              Reasoning: Market data detected.
-              Tool: get_ticker_price("PETR4.SA")
+                [WHEN *NOT* TO USE A TOOL]
+                - If the user greets you ("Olá", "Oi").
+                - If the user asks for an explanation/concept ("O que é ETF?", "Quem é você?").
+                - If you are just answering a question.
 
-            - User: "Olá, tudo bem?"
-              Reasoning: Greeting detected. No tool needed.
-              Output: "Olá! Sou o NEXUS, seu assistente financeiro. Como posso ajudar você hoje?"
+                [PROHIBITED ACTIONS]
+                - NEVER invent tools like "answer", "get_response", "reply", "no_tool". 
+                - If no tool is needed, WRITE TEXT DIRECTLY. Do not wrap it in JSON.
+                - NEVER use LaTeX formatting (like \frac, ^, $). Use plain text.
 
-            - User: "O que é um ETF?"
-              Reasoning: General question. No tool needed.
-              Output: "Um ETF (Exchange Traded Fund) é um fundo de investimento negociado em bolsa como se fosse uma ação..."
-        """
+                ### EXAMPLES OF CORRECT BEHAVIOR:
+
+                User: "Olá, tudo bem?"
+                (Analysis: Greeting. No tool needed.)
+                Nexus: "Olá! Tudo ótimo. Sou o NEXUS, seu assistente financeiro. Como posso ajudar?"
+
+                User: "O que é uma ação?"
+                (Analysis: Conceptual question. No tool needed.)
+                Nexus: "Uma ação é a menor parcela do capital social de uma empresa..."
+
+                User: "Quanto é 50 vezes 12?"
+                (Analysis: Math needed.)
+                Tool Call: calculate_math_expression(expression="50 * 12")
+
+                User: "Preço da Vale"
+                (Analysis: Market data needed.)
+                Tool Call: get_ticker_price(ticker="VALE3.SA")
+                """
 
         # 4. Inicialização do agente
         self.agent = Agent(
@@ -115,42 +107,62 @@ class NexusAgent:
         try:
             print(f"User: {user_message}")
 
+            # Envia mensagem
             response = self.agent(user_message)
             final_answer = ""
 
             # === TRATAMENTO DE RESPOSTA ===
 
-            # Caso 1: O Agente devolveu um Dicionário (JSON)
+            # Caso 1: O Agente devolveu um JSON (Tentativa de usar ferramenta)
             if isinstance(response, dict):
 
                 tool_name = response.get("name")
+                params = response.get("parameters", {})
 
-                # Se o nome da tool for "None" (string) ou None (nulo), é apenas conversa.
-                if tool_name is None or str(tool_name) == "None":
-                    final_answer = "Olá! Sou o NEXUS. Como posso ajudar com seus cálculos ou investimentos?"
+                # Lista de nomes reais das suas ferramentas
+                valid_tool_names = [t.__name__ for t in self.tools]
 
-                # Caso Tool de Mensagem (Padrão Strands)
-                elif "parameters" in response and "message" in response["parameters"]:
-                    final_answer = response["parameters"]["message"]
-
-                # Caso Tool Call Real (Fallback Manual)
-                elif tool_name is not None:
-                    print(f"⚠️ Tentativa de tool manual: {tool_name}")
-                    # Busca a ferramenta na lista
+                # CENÁRIO A: É uma ferramenta
+                if tool_name in valid_tool_names:
+                    print(f"🛠️ Tool Call Válido: {tool_name}")
                     target_tool = next((t for t in self.tools if t.__name__ == tool_name), None)
 
-                    if target_tool:
-                        try:
-                            params = response.get("parameters", {})
-                            print(f"🛠️ Executando {tool_name} manualmente...")
-                            result = target_tool(**params)
-                            final_answer = str(result)
-                        except Exception as tool_err:
-                            final_answer = f"Erro ao executar ferramenta: {tool_err}"
-                    else:
-                        final_answer = f"Tentei usar a ação '{tool_name}', mas não consegui."
+                    try:
+                        result = target_tool(**params)
+                        final_answer = str(result)
+                    except Exception as tool_err:
+                        final_answer = f"Erro técnico ao executar {tool_name}: {tool_err}"
 
-            # Caso 2: Lista (Histórico)
+                # CENÁRIO B: É uma alucinação ("answer", "get_response", etc)
+                else:
+                    print(f"⚠️ Alucinação de Tool ignorada: {tool_name}")
+
+                    # 1. Tenta chaves conhecidas primeiro
+                    candidates = [
+                        params.get("text"),
+                        params.get("message"),
+                        params.get("input_text"),
+                        params.get("response"),
+                        params.get("output")
+                    ]
+                    # Pega o primeiro que não for None
+                    extracted_text = next((item for item in candidates if item is not None), None)
+
+                    # 2. Se não achou, pega o primeiro string que encontrar no dicionário
+                    if not extracted_text and params:
+                        for value in params.values():
+                            if isinstance(value, str):
+                                extracted_text = value
+                                break
+
+                    # Define a resposta final
+                    if extracted_text:
+                        final_answer = str(extracted_text)
+                    else:
+                        # Se o JSON veio vazio ou sem texto útil
+                        final_answer = "Olá! Sou o NEXUS. Como posso ajudar com seus investimentos hoje?"
+
+            # Caso 2: Lista
             elif isinstance(response, list):
                 final_answer = str(response[-1])
 
@@ -159,10 +171,10 @@ class NexusAgent:
                 final_answer = str(response)
 
             # Limpeza final de segurança
-            if "name': 'None" in str(final_answer) or "name': None" in str(final_answer):
-                final_answer = "Olá! Como posso ajudar você hoje?"
+            if "name':" in str(final_answer) or "parameters':" in str(final_answer):
+                final_answer = "Olá! Como posso ajudar você?"
 
-            print(f"Nexus Output: {final_answer}")
+            print(f"Nexus Output (Clean): {final_answer}")
             return final_answer
 
         except Exception as e:
