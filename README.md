@@ -68,12 +68,12 @@ Instale:
 
 * **Python 3.10+**
 * **Ollama**
-* Modelo **Llama 3.1** 
+* Modelo **Qwen2.5 7B** 
 
 ### Instalar o modelo correto:
 
 ```bash
-ollama pull llama3.1
+ollama pull qwen2.5:7b
 ```
 
 ---
@@ -111,7 +111,7 @@ Crie um arquivo `.env` na raiz com:
 
 ```ini
 OLLAMA_HOST=http://localhost:11434
-MODEL_NAME=llama3.1
+MODEL_NAME=qwen2.5:7b
 ```
 
 ---
@@ -194,13 +194,13 @@ ollama serve
 Você está usando o modelo errado. Rode:
 
 ```bash
-ollama pull llama3.1
+ollama pull qwen2.5:7b
 ```
 
 E confirme no `.env`:
 
 ```
-MODEL_NAME=llama3.1
+MODEL_NAME=qwen2.5:7b
 ```
 
 ###  Gráficos não renderizam
