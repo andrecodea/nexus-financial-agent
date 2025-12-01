@@ -67,6 +67,7 @@ class NexusAgent:
           7. FORMATTING: Use Markdown (bold, lists). NEVER use LaTeX math formatting (like \frac, ^, \c).
           8. Speak naturally. Use spaces between numbers and words.
           9. Round numbers to 2 decimal places (e.g., R$ 35.50, not 35.502391).
+          10. ALWAYS answer in normal, brazilian portuguese text.
 
         FEW_SHOT_EXAMPLES (How to behave):
             - User: "Quanto é 50 * 50?"
@@ -115,42 +116,51 @@ class NexusAgent:
             print(f"User: {user_message}")
 
             response = self.agent(user_message)
+            final_answer = ""
 
-            # Caso 1: O Agente devolveu um JSON de Tool Call
-            if isinstance(response, dict) and response.get("name") is not None:
-                tool_name = response["name"]
-                tool_params = response.get("parameters", {})
+            # === TRATAMENTO DE RESPOSTA ===
 
-                print(f"Tool Call não executado: {tool_name}")
+            # Caso 1: O Agente devolveu um Dicionário (JSON)
+            if isinstance(response, dict):
 
-                # Procura a função correspondente na lista de tools
-                target_tool = next((t for t in self.tools if t.__name__ == tool_name), None)
+                tool_name = response.get("name")
 
-                if target_tool:
-                    try:
-                        print(f"🛠️ Executando manualmente: {tool_name} com {tool_params}")
-                        result = target_tool(**tool_params)
-                        final_answer = str(result)
-                    except Exception as tool_err:
-                        final_answer = f"Tentei consultar os dados, mas ocorreu um erro técnico: {tool_err}"
-                else:
-                    final_answer = f"O agente tentou usar a ferramenta '{tool_name}', mas ela não foi encontrada."
+                # Se o nome da tool for "None" (string) ou None (nulo), é apenas conversa.
+                if tool_name is None or str(tool_name) == "None":
+                    final_answer = "Olá! Sou o NEXUS. Como posso ajudar com seus cálculos ou investimentos?"
 
-            # Caso 2: Resposta padrão (JSON com 'message' ou Texto)
-            elif isinstance(response, dict):
-                if "parameters" in response and "message" in response["parameters"]:
+                # Caso Tool de Mensagem (Padrão Strands)
+                elif "parameters" in response and "message" in response["parameters"]:
                     final_answer = response["parameters"]["message"]
-                else:
-                    final_answer = str(response)  # Fallback genérico
 
+                # Caso Tool Call Real (Fallback Manual)
+                elif tool_name is not None:
+                    print(f"⚠️ Tentativa de tool manual: {tool_name}")
+                    # Busca a ferramenta na lista
+                    target_tool = next((t for t in self.tools if t.__name__ == tool_name), None)
+
+                    if target_tool:
+                        try:
+                            params = response.get("parameters", {})
+                            print(f"🛠️ Executando {tool_name} manualmente...")
+                            result = target_tool(**params)
+                            final_answer = str(result)
+                        except Exception as tool_err:
+                            final_answer = f"Erro ao executar ferramenta: {tool_err}"
+                    else:
+                        final_answer = f"Tentei usar a ação '{tool_name}', mas não consegui."
+
+            # Caso 2: Lista (Histórico)
             elif isinstance(response, list):
                 final_answer = str(response[-1])
+
+            # Caso 3: String direta
             else:
                 final_answer = str(response)
 
-            # Limpeza final
-            if "{'name': null" in str(final_answer):
-                final_answer = "Desculpe, não entendi. Poderia reformular?"
+            # Limpeza final de segurança
+            if "name': 'None" in str(final_answer) or "name': None" in str(final_answer):
+                final_answer = "Olá! Como posso ajudar você hoje?"
 
             print(f"Nexus Output: {final_answer}")
             return final_answer
