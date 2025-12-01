@@ -10,33 +10,66 @@ st.set_page_config(
     layout="wide"
 )
 
-# === Título e Header
+# === Título e Header ===
 st.title("NEXUS: Agente Inteligente Financeiro")
 st.markdown('---')
 
+# === Estado do Gráfico ===
+if "chart_ticker" not in st.session_state:
+    st.session_state.chart_ticker = None
+
 # === Sidebar (Dash de ações)===
 with st.sidebar:
-    st.header("Market Monitor")
-    st.write("Visualize ações em tempo real enquanto conversa")
-    ticker = st.text_input("Digite o nome do Ticker (ex: AAPL, PETR4.SA:):", value="PETR4.SA")
+    st.header("Arquitetura do Sistema")
+    st.info(
+        """
+        **Como funciona:**
+        1. **Frontend:** Streamlit
+        2. **Backend:** FastAPI (Porta 8000)
+        3. **Agente:** Strands SDK + Ollama
+        """
+    )
 
+    st.markdown("---")
+
+    st.header("Monitor de Mercado")
+    st.write("Visualize ações em tempo real enquanto conversa")
+    ticker_input = st.text_input("Ticker da Ação:", value="PETR4.SA", key="input_ticker")
+
+    # Atualização de estado
     if st.button("Carregar Gráfico"):
+        st.session_state.chart_ticker = ticker_input
+
+    # Renderização do gráfico
+    if st.session_state.chart_ticker:
+        ticker = st.session_state.chart_ticker
         try:
-            with st.spinner(f"Buscado dados de {ticker}..."):
-                stock=yf.Ticker(ticker)
-                hist = stock.history(period="1mo")
+            with st.spinner(f"Atualizando {ticker}..."):
+                stock = yf.Ticker(ticker)
+                hist = stock.history(period="5d")
 
                 if not hist.empty:
-                    st.line_chart(hist['Close'])
                     current_price = hist['Close'].iloc[-1]
+                    previous_price = hist['Close'].iloc[-2] if len(hist) > 1 else current_price
+                    delta = current_price - previous_price
+
+                    # Pega a data exata do último dado disponível
+                    last_date = hist.index[-1].strftime('%d/%m/%Y')
+
                     st.metric(
                         label=f"Preço Atual ({ticker})",
-                        value=f"R$ {current_price:.2f}"
+                        value=f"R$ {current_price:.2f}",
+                        delta=f"{delta:.2f} (Desde o último fechamento)"
                     )
+
+                    st.line_chart(hist['Close'])
+                    st.caption(f"**Atualizado em:** {last_date}")
+                    st.caption("Nota: Cotações podem ter delay de 15min ou referir-se ao último pregão fechado.")
+
                 else:
-                    st.error("Ticker não encontrado ou sem dados.")
+                    st.warning(f"Sem dados para '{ticker}'.")
         except Exception as e:
-            st.error(f"Erro ao carregar gráfico: {e}")
+            st.error(f"Erro: {e}")
 
         st.markdown('---')
         st.info("O Agente NEXUS pode calcular juros, buscar ações de mercado e realizar cálculos matemáticos.")
