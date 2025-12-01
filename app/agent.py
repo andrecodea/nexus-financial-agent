@@ -1,5 +1,6 @@
 # === Importações Necessárias ===
 import os
+import re
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -72,7 +73,8 @@ class NexusAgent:
                 [PROHIBITED ACTIONS]
                 - NEVER invent tools like "answer", "get_response", "reply", "no_tool". 
                 - If no tool is needed, WRITE TEXT DIRECTLY. Do not wrap it in JSON.
-                - NEVER use LaTeX formatting (like \frac, ^, $). Use plain text.
+                - NEVER use LaTeX formatting (like \frac, ^, $). Use PLAIN TEXT.
+                - NEVER use Markdown formatting (like **, *, $). Use PLAIN TEXT.
 
                 ### EXAMPLES OF CORRECT BEHAVIOR:
 
@@ -100,6 +102,22 @@ class NexusAgent:
             system_prompt=self.system_prompt
         )
 
+    # === Função de limpeza da resposta ===
+    def clean_response(self, text: str) -> str:
+        """
+        Cleans response from LaTeX formatting.
+        """
+        # 1. Remove delimitadores de LaTeX comuns: \(, \), \[, \]
+        text = re.sub(r'\\\(|\\\)|\\\[|\\\]', '', text)
+        # 2. Remove o símbolo de dólar solto usado para abrir fórmulas
+        text = text.replace("$", "")
+        text = text.replace("R ", "R$ ")
+        # 3. Remove caracteres de escape
+        text = text.replace("\\c", "").replace("^", "")
+
+        return text
+
+    # === Função de chat ===
     def chat(self, user_message: str):
         """
         Chamada de API
