@@ -7,7 +7,7 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.31.0-red)
 ![Ollama](https://img.shields.io/badge/LLM-Llama%203.1-orange)
 
-O **NEXUS Financial Agent** é um agente de IA projetado para cálculos financeiros, matemática geral e consultas de mercado (ações) utilizando ferramentas Python e orquestração via **Strands Agents SDK**.
+O **NEXUS Financial Agent** é um agente de IA projetado para cálculos financeiros, matemática geral e consultas de mercado (ações) utilizando ferramentas Python e orquestração via **Strands Age[...]
 
 O sistema combina:
 
@@ -52,7 +52,7 @@ graph LR
 
 # ROADMAP
 ### Converter o agente em um sistema cognitivo de gastos pessoais e investimentos.
-- [x] Transição modal de Llama3.1 para Qwen2.5, que é superior em matemática.
+- [x] Transição modal de Llama3.1 para Qwen3:8B, que é superior em matemática.
 - [ ] Memória SQLite para gastos e investimentos;
 - [ ] Dashboard inteligente no app Streamlit (Pie & Bar charts);
 - [ ] RAG Documental Agêntico com ChromaDB via upload no Streamlit;
@@ -68,12 +68,12 @@ Instale:
 
 * **Python 3.10+**
 * **Ollama**
-* Modelo **Qwen2.5 7B** 
+* Modelo **Qwen3:8B** 
 
 ### Instalar o modelo correto:
 
 ```bash
-ollama pull qwen2.5:7b
+ollama pull qwen3:8B
 ```
 
 ---
@@ -111,7 +111,7 @@ Crie um arquivo `.env` na raiz com:
 
 ```ini
 OLLAMA_HOST=http://localhost:11434
-MODEL_NAME=qwen2.5:7b
+MODEL_NAME=qwen3:8B
 ```
 
 ---
@@ -194,13 +194,13 @@ ollama serve
 Você está usando o modelo errado. Rode:
 
 ```bash
-ollama pull qwen2.5:7b
+ollama pull qwen3:8B
 ```
 
 E confirme no `.env`:
 
 ```
-MODEL_NAME=qwen2.5:7b
+MODEL_NAME=qwen3:8B
 ```
 
 ###  Gráficos não renderizam
@@ -222,3 +222,6 @@ curl -X POST http://localhost:8000/chat \
 ```
 
 ----
+
+````
+
