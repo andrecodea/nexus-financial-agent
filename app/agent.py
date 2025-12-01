@@ -186,6 +186,8 @@ class NexusAgent:
             if not clean_check or clean_check in garbage_responses:
                 final_answer = "Olá! Sou o NEXUS, seu assistente financeiro. Como posso ajudar com seus investimentos hoje?"
 
+            final_answer = self.clean_response(final_answer)
+
             print(f"Nexus Output: {final_answer}")
             return final_answer
 
