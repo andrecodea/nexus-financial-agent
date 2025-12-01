@@ -205,3 +205,14 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Python
+*.py[cod]
+
+# IDEs
+.idea/
+.vscode/
+
+# Mac/Windows system files
+.DS_Store
+Thumbs.db
