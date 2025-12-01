@@ -50,6 +50,17 @@ graph LR
 
 ---
 
+# ROADMAP
+### Converter o agente em um sistema cognitivo de gastos pessoais e investimentos.
+- [ ] Memória SQLite para gastos e investimentos;
+- [ ] Dashboard inteligente no app Streamlit (Pie & Bar charts);
+- [ ] RAG Documental Agêntico com ChromaDB via upload no Streamlit;
+- [ ] Classificação automática com base em orçamentos;
+- [ ] Sistema de recomendação inteligente para gastos;
+- [ ] Transição modal de Llama3.1 para Qwen2.5, que é superior em matemática.
+
+---
+
 #  Pré-requisitos
 
 Instale:
