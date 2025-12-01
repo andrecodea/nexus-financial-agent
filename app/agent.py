@@ -58,8 +58,9 @@ class NexusAgent:
                 3. `get_company_info`: For company fundamentals (Sector, P/E).
                 4. `get_ticker_news`: For market news.
                 5. `calculate_compound_interest`: For investment projection.
+                6. NEVER invent tools.
 
-                ### CRITICAL PROTOCOL - READ CAREFULLY:
+                ### CRITICAL PROTOCOL - **READ CAREFULLY**:
 
                 [WHEN TO USE A TOOL]
                 - Only use a tool if the user asks for DATA or CALCULATION.
@@ -70,14 +71,21 @@ class NexusAgent:
                 - If the user asks for an explanation/concept ("O que é ETF?", "Quem é você?").
                 - If you are just answering a question.
 
-                [PROHIBITED ACTIONS]
-                - NEVER invent tools like "answer", "get_response", "reply", "no_tool". 
-                - If no tool is needed, WRITE TEXT DIRECTLY. Do not wrap it in JSON.
-                - NEVER use LaTeX formatting (like \frac, ^, $). Use PLAIN TEXT.
-                - NEVER use Markdown formatting (like **, *, $). Use PLAIN TEXT.
+                [STRICT OUTPUT FORMATTING - READ CAREFULLY]
+                    1. **PLAIN TEXT ONLY**. Do NOT use LaTeX or MathJax.
+                    2. **FORBIDDEN SYMBOL**: NEVER use the dollar sign '$' to encapsulate numbers (e.g., $100$).
+                    3. CURRENCY FORMAT: Always use 'R$ 10,00' (Real) or 'US$ 10.00' (Dollar). Never use '$' alone.
+                    4. Do NOT use code blocks (```) or bold (**).
+                    5. Just write the numbers naturally.
+                    6. If the user greets, answer directly without tools.
+                    7. If a tool returns a value, just present it. Do not try to convert it to a formula.
 
-                ### EXAMPLES OF CORRECT BEHAVIOR:
+                [EXAMPLES OF CORRECT FORMAT]
+                - WRONG: "O valor é $150.00$"
+                - WRONG: "O valor é \c 150"
+                - CORRECT: "O valor é R$ 150,00"
 
+               [EXAMPLES OF CORRECT BEHAVIOR]
                 User: "Olá, tudo bem?"
                 (Analysis: Greeting. No tool needed.)
                 Nexus: "Olá! Sou o NEXUS, seu assistente financeiro. Como posso ajudar?"
@@ -105,17 +113,21 @@ class NexusAgent:
     # === Função de limpeza da resposta ===
     def clean_response(self, text: str) -> str:
         """
-        Cleans response from LaTeX formatting.
+        Removes LaTex and Markdown from response.
         """
-        # 1. Remove delimitadores de LaTeX comuns: \(, \), \[, \]
+        # Markdown
+        text = text.replace("**", "").replace("__", "")
+        # Codeblocks
+        text = text.replace("```", "").replace("`", "")
+        # LaTex
         text = re.sub(r'\\\(|\\\)|\\\[|\\\]', '', text)
-        # 2. Remove o símbolo de dólar solto usado para abrir fórmulas
+        # Dólar
         text = text.replace("$", "")
-        text = text.replace("R ", "R$ ")
-        # 3. Remove caracteres de escape
-        text = text.replace("\\c", "").replace("^", "")
+        text = text.replace("R ", "R$ ")  # Reconstrói o R$ se tiver quebrado
+        # Misc
+        text = text.replace("\\", "")
 
-        return text
+        return text.strip()
 
     # === Função de chat ===
     def chat(self, user_message: str):
