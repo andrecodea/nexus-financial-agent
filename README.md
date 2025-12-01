@@ -2,7 +2,7 @@
 
 > **Case Técnico Dreamsquad:** API de Chat com Agente de IA Financeiro.
 
-O **NEXUS** é um agente financeiro inteligente capaz de realizar cálculos matemáticos complexos, consultar cotações de ações em tempo real e calcular juros compostos. O projeto foi desenhado para demonstrar a orquestração de LLMs locais (Ollama) com ferramentas Python customizadas.
+O NEXUS é um agente financeiro desenvolvido para o desafio técnico da Dreamsquad, projetado para realizar cálculos matemáticos e consultas de mercado via ferramentas externas. A solução utiliza uma arquitetura híbrida com FastAPI no backend e Streamlit no frontend, orquestrando o modelo Llama 3.1 (via Ollama) através do Strands Agents SDK. O projeto executa localmente e aplica técnicas de engenharia de prompt, Few-Shot e notação orientada a objetos (TOON), para estruturar o uso de ferramentas Python (yfinance e math) e validar as respostas do modelo.
 
 ---
 
