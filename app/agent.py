@@ -31,7 +31,7 @@ class NexusAgent:
         # 1. Configuração do llm
         self.ollama_model = OllamaModel(
             host=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
-            model_id="llama3.1"
+            model_id="qwen3:8b"
         )
 
         # 2. Configuração das tools
@@ -78,7 +78,7 @@ class NexusAgent:
 
                 User: "Olá, tudo bem?"
                 (Analysis: Greeting. No tool needed.)
-                Nexus: "Olá! Tudo ótimo. Sou o NEXUS, seu assistente financeiro. Como posso ajudar?"
+                Nexus: "Olá! Sou o NEXUS, seu assistente financeiro. Como posso ajudar?"
 
                 User: "O que é uma ação?"
                 (Analysis: Conceptual question. No tool needed.)
@@ -102,81 +102,75 @@ class NexusAgent:
 
     def chat(self, user_message: str):
         """
-        Chamada da API para processar a mensagem do usuário.
+        Chamada de API
         """
         try:
             print(f"User: {user_message}")
-
-            # Envia mensagem
             response = self.agent(user_message)
             final_answer = ""
 
             # === TRATAMENTO DE RESPOSTA ===
 
-            # Caso 1: O Agente devolveu um JSON (Tentativa de usar ferramenta)
             if isinstance(response, dict):
-
                 tool_name = response.get("name")
                 params = response.get("parameters", {})
 
-                # Lista de nomes reais das suas ferramentas
-                valid_tool_names = [t.__name__ for t in self.tools]
+                # Lista de ferramentas reais
+                valid_tools = [t.__name__ for t in self.tools]
 
-                # CENÁRIO A: É uma ferramenta
-                if tool_name in valid_tool_names:
-                    print(f"🛠️ Tool Call Válido: {tool_name}")
+                # 1. Verifica se a tool é real.
+                if tool_name in valid_tools:
                     target_tool = next((t for t in self.tools if t.__name__ == tool_name), None)
-
                     try:
-                        result = target_tool(**params)
-                        final_answer = str(result)
-                    except Exception as tool_err:
-                        final_answer = f"Erro técnico ao executar {tool_name}: {tool_err}"
+                        print(f"🛠️ Executing: {tool_name}")
+                        final_answer = str(target_tool(**params))
+                    except Exception as e:
+                        final_answer = f"Erro na ferramenta: {e}"
 
-                # CENÁRIO B: É uma alucinação ("answer", "get_response", etc)
+                # 2. Se for falsa, extrai texto.
                 else:
-                    print(f"⚠️ Alucinação de Tool ignorada: {tool_name}")
+                    print(f"⚠️ JSON não executável detectado: {response}")
 
-                    # 1. Tenta chaves conhecidas primeiro
+                    # Tenta varrer chaves comuns de texto
                     candidates = [
-                        params.get("text"),
-                        params.get("message"),
-                        params.get("input_text"),
-                        params.get("response"),
-                        params.get("output")
+                        params.get("input_text"), params.get("message"),
+                        params.get("text"), params.get("response"), params.get("output"),
+                        response.get("response")  # Às vezes vem na raiz
                     ]
-                    # Pega o primeiro que não for None
-                    extracted_text = next((item for item in candidates if item is not None), None)
 
-                    # 2. Se não achou, pega o primeiro string que encontrar no dicionário
-                    if not extracted_text and params:
-                        for value in params.values():
-                            if isinstance(value, str):
-                                extracted_text = value
+                    # Pega o primeiro valor de texto válido
+                    text_found = next((item for item in candidates if item), None)
+
+                    if text_found:
+                        final_answer = str(text_found)
+
+                    # Se não achou texto mas tem valores soltos no params
+                    elif params:
+                        # Tenta pegar o primeiro valor string que achar
+                        for v in params.values():
+                            if isinstance(v, str):
+                                final_answer = v
                                 break
 
-                    # Define a resposta final
-                    if extracted_text:
-                        final_answer = str(extracted_text)
-                    else:
-                        # Se o JSON veio vazio ou sem texto útil
-                        final_answer = "Olá! Sou o NEXUS. Como posso ajudar com seus investimentos hoje?"
-
-            # Caso 2: Lista
             elif isinstance(response, list):
-                final_answer = str(response[-1])
-
-            # Caso 3: String direta
+                if response:
+                    final_answer = str(response[-1])
             else:
                 final_answer = str(response)
 
-            # Limpeza final de segurança
-            if "name':" in str(final_answer) or "parameters':" in str(final_answer):
-                final_answer = "Olá! Como posso ajudar você?"
+            # Remove espaços em branco
+            clean_check = str(final_answer).strip()
 
-            print(f"Nexus Output (Clean): {final_answer}")
+            # Lista de respostas "lixo" que queremos substituir por saudação
+            garbage_responses = ["{}", "[]", "None", "{'name': None}", "{'parameters': {}}"]
+
+            # Se a resposta estiver vazia ou for lixo técnico
+            if not clean_check or clean_check in garbage_responses:
+                final_answer = "Olá! Sou o NEXUS, seu assistente financeiro. Como posso ajudar com seus investimentos hoje?"
+
+            print(f"Nexus Output: {final_answer}")
             return final_answer
 
         except Exception as e:
-            print(f"Critical Error: {e}")
-            return f"Ocorreu um erro no processamento: {str(e)}"
+            print(f"Error: {e}")
+            return f"Erro interno: {str(e)}"
